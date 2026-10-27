@@ -6,7 +6,7 @@ Date: 27 October 2026
 
 - Production build: Next.js 16.4.3, successful.
 - TypeScript strict check: successful.
-- Engine tests: 10 passing; includes 8,000 seeded oracle cases.
+- Engine tests: 16 passing; includes 8,000 seeded oracle cases.
 - Browser: completed a 48-probe mock run locally and on the public Vercel deployment.
 - Browser: inspected paired response evidence, filtered regressions by family, and reopened saved device history.
 - Mobile viewport: 390 px, document scroll width equals client width (no horizontal overflow).
@@ -16,6 +16,16 @@ Date: 27 October 2026
 - Isolation check: a transaction with two synthetic users exposed one owned row and zero rows belonging to the other user; transaction rolled back.
 - Authenticated insert check: an owner could save a run; a cross-owner insert was rejected by RLS; transaction rolled back.
 - Production URL: https://blindspot-seven-sandy.vercel.app
+
+## v0.2 regression and validation checks
+
+- Frozen suite: 20 distinct regression probes saved through the browser UI.
+- Replay: configured a patched mock candidate and replayed the exact suite. UI reported 20 fixed, 0 persistent, 0 newly failing, 0 errors.
+- Validation: generated and completed 48 fresh task instances with no adaptive phase. Engine tests verify no source-prompt overlap and balanced families.
+- Import: a suite JSON file passed runtime schema and SHA-256 integrity checks in the browser.
+- Persistence: both replay and validation runs appeared in device history; unit tests cover legacy/new engine records and suite reload.
+- Suite RLS: an owner could insert, cross-owner insert was rejected, and the other user could see zero suites. The test transaction rolled back.
+- Security advisors: zero findings after the regression_suites table was added.
 
 ## Not independently verified
 
