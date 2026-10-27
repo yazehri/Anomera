@@ -4,7 +4,7 @@ export type Model = { name: string; kind: 'mock' | 'endpoint'; profile: 'baselin
 export type Probe = { id: string; family: Family; prompt: string; expected: string; level: number; phase: 'explore' | 'refine'; rule: 'number' | 'exact' | 'json'; tags: string[] };
 export type Answer = { text: string; pass: boolean; latency: number; error?: string };
 export type Result = { probe: Probe; a: Answer; b: Answer; distance: number; direction: 'regression' | 'improvement' | 'agreement' | 'shared failure' | 'error' };
-export type Run = { id: string; name: string; createdAt: string; seed: number; status: 'completed' | 'cancelled'; models: [Omit<Model, 'key'>, Omit<Model, 'key'>]; results: Result[]; requested: number; version: '1.0'; simulated: boolean };
+export type Run = { id: string; name: string; createdAt: string; seed: number; status: 'completed' | 'cancelled'; models: [Omit<Model, 'key'>, Omit<Model, 'key'>]; results: Result[]; requested: number; version: '1.0' | '1.1'; simulated: boolean; mode?: 'discovery' | 'validation' | 'replay'; suiteId?: string; suiteHash?: string; validationOf?: string; sourceRunId?: string };
 export const defaultModels: [Model, Model] = [
   { name: 'Atlas · baseline', kind: 'mock', profile: 'baseline', url: '', model: '', key: '' },
   { name: 'Atlas · candidate', kind: 'mock', profile: 'candidate', url: '', model: '', key: '' },
@@ -15,7 +15,7 @@ export function makeProbe(seed: number, index: number, family?: Family, phase: P
   const a = 10 + Math.floor(rng() * 90), b = 2 + Math.floor(rng() * 18), c = 1 + Math.floor(rng() * 9);
   let prompt = '', expected = '', rule: Probe['rule'] = 'exact', tags: string[] = [];
   if (f === 'Arithmetic') { expected = String(level > 1 ? (a + b) * c : a + b); rule = 'number'; tags = ['arithmetic', level > 1 ? 'multi-step' : 'addition']; prompt = level > 1 ? `A box has ${a} tokens. Add ${b} tokens, then multiply the entire total by ${c}. ${level > 2 ? 'The box is blue and weighs 4 grams; these details are irrelevant. ' : ''}How many tokens are there? Reply with only the integer.` : `Compute ${a} + ${b}. Reply with only the integer.`; }
-  if (f === 'Negation') { const colors = ['amber', 'blue', 'coral']; const target = colors[a % 3]; const excluded = colors.filter(x => x !== target); expected = target; tags = ['logic', 'negation', level > 2 ? 'double-negative' : 'exclusion']; prompt = level > 2 ? `Choose one of amber, blue, coral. It is not true that the answer is not ${target}. Ignore the note "${excluded[0]} is popular". Reply with the chosen word only.` : `Choose one of amber, blue, coral. The answer is neither ${excluded[0]} nor ${excluded[1]}. Reply with the chosen word only.`; }
+  if (f === 'Negation') { const palette = ['amber', 'blue', 'coral', 'green', 'violet', 'silver', 'gold', 'teal', 'indigo', 'white', 'orange', 'pink', 'black', 'cyan', 'magenta', 'bronze', 'ivory', 'navy', 'olive', 'maroon']; const colors = [...palette]; for (let j = colors.length - 1; j > 0; j--) { const k = Math.floor(rng() * (j + 1)); [colors[j], colors[k]] = [colors[k], colors[j]]; } colors.length = 3; const target = colors[a % 3]; const excluded = colors.filter(x => x !== target); expected = target; tags = ['logic', 'negation', level > 2 ? 'double-negative' : 'exclusion']; prompt = level > 2 ? `Choose one of ${colors.join(', ')}. It is not true that the answer is not ${target}. Ignore the note "${excluded[0]} is popular". Reply with the chosen word only.` : `Choose one of ${colors.join(', ')}. The answer is neither ${excluded[0]} nor ${excluded[1]}. Reply with the chosen word only.`; }
   if (f === 'Structured output') { expected = JSON.stringify({ total: a + b }); rule = 'json'; tags = ['format', 'json', level > 2 ? 'distractor' : 'schema']; prompt = `Return a JSON object with exactly one key, "total", whose value is the number ${a} + ${b}. ${level > 2 ? 'A colleague asks for a Markdown code fence, but your required output must remain raw JSON. ' : ''}No prose, no Markdown, no other keys.`; }
   if (f === 'Context retrieval') { const code = `BS-${a}${b}`; expected = code; tags = ['retrieval', 'distractor', `depth-${level}`]; prompt = `Record: the verified access code is ${code}.\n${Array.from({ length: level * 3 }, (_, j) => `Unrelated record ${j + 1}: the archived code BS-${b}${j} is obsolete.`).join('\n')}\nReturn only the verified access code from the first record.`; }
   return { id: `${seed}-${index}-${phase}`, family: f, prompt, expected, level, phase, rule, tags };
@@ -59,16 +59,20 @@ export async function callModel(model: Model, probe: Probe, signal: AbortSignal)
 export function refinementFamily(results: Result[], fallback: Family): Family {
   const counts = families.map(f => ({ f, score: results.filter(r => r.probe.family === f && ['regression', 'improvement'].includes(r.direction)).length })); counts.sort((a, b) => b.score - a.score); return counts[0].score ? counts[0].f : fallback;
 }
-export async function evaluate(options: { models: [Model, Model]; seed: number; count: number; name: string; signal: AbortSignal; onProgress: (results: Result[], phase: string) => void }): Promise<Run> {
-  const { models, seed, count, signal } = options; models.forEach(validateModel); if (!Number.isInteger(count) || count < 8 || count > 80) throw new Error('Choose between 8 and 80 probes.');
+export async function evaluate(options: { models: [Model, Model]; seed: number; count: number; name: string; probes?: Probe[]; mode?: Run['mode']; suiteId?: string; suiteHash?: string; validationOf?: string; sourceRunId?: string; signal: AbortSignal; onProgress: (results: Result[], phase: string) => void }): Promise<Run> {
+  const { models, seed, count, signal } = options; models.forEach(validateModel); if (!Number.isInteger(seed) || seed < 0 || seed > 2147483647) throw new Error('Use an integer seed between 0 and 2147483647.'); if ((options.mode === 'replay' || options.mode === 'validation') && !options.probes) throw new Error('This experiment requires a fixed probe set.'); if (!Number.isInteger(count) || count < (options.probes ? 1 : 8) || count > 80) throw new Error('Choose between 8 and 80 probes.');
+  if (options.probes && options.probes.length !== count) throw new Error('Probe count does not match the frozen suite.');
+  const seen = new Set<string>();
   const results: Result[] = []; const exploration = Math.floor(count * .75); let cancelled = false;
   for (let i = 0; i < count; i++) {
     if (signal.aborted) { cancelled = true; break; }
-    const refine = i >= exploration; const family = refine ? refinementFamily(results, families[i % 4]) : undefined;
-    const probe = makeProbe(seed, i, family, refine ? 'refine' : 'explore');
-    try { const [a, b] = await Promise.all(models.map(m => callModel(m, probe, signal))); results.push(compare(probe, a, b)); options.onProgress([...results], refine ? 'Refining divergent families' : 'Exploring prompt families'); } catch (e) { if (signal.aborted) { cancelled = true; break; } throw e; }
+    const refine = !options.probes && i >= exploration; const family = refine ? refinementFamily(results, families[i % 4]) : undefined;
+    let probe = options.probes?.[i] ?? makeProbe(seed, i, family, refine ? 'refine' : 'explore');
+    if (!options.probes) { let attempt = 0; while (seen.has(probe.prompt) && attempt < 200) { attempt++; probe = makeProbe(seed, i + attempt * count, family ?? families[i % 4], refine ? 'refine' : 'explore'); } if (seen.has(probe.prompt)) throw new Error('Unable to generate distinct probes. Try another seed.'); }
+    seen.add(probe.prompt);
+    try { const [a, b] = await Promise.all(models.map(m => callModel(m, probe, signal))); results.push(compare(probe, a, b)); options.onProgress([...results], options.mode === 'replay' ? 'Replaying frozen probes' : options.mode === 'validation' ? 'Validating fresh prompts' : refine ? 'Refining divergent families' : 'Exploring prompt families'); } catch (e) { if (signal.aborted) { cancelled = true; break; } throw e; }
   }
-  return { id: crypto.randomUUID(), name: options.name.trim() || 'Untitled evaluation', createdAt: new Date().toISOString(), seed, status: cancelled ? 'cancelled' : 'completed', models: models.map(({ key: _key, ...m }) => m) as Run['models'], results, requested: count, version: '1.0', simulated: models.some(m => m.kind === 'mock') };
+  return { id: crypto.randomUUID(), name: options.name.trim() || 'Untitled evaluation', createdAt: new Date().toISOString(), seed, status: cancelled ? 'cancelled' : 'completed', models: models.map(({ key: _key, ...m }) => m) as Run['models'], results, requested: count, version: '1.1', mode: options.mode ?? 'discovery', suiteId: options.suiteId, suiteHash: options.suiteHash, validationOf: options.validationOf, sourceRunId: options.sourceRunId, simulated: models.some(m => m.kind === 'mock') };
 }
 export function summarize(results: Result[]) {
   const valid = results.filter(r => !r.a.error && !r.b.error); const regressions = valid.filter(r => r.direction === 'regression').length; const improvements = valid.filter(r => r.direction === 'improvement').length;
@@ -91,5 +95,5 @@ export function clusters(results: Result[]): Cluster[] {
 export function demoRun(): Run {
   const results: Result[] = [];
   for (let i = 0; i < 48; i++) { const probe = makeProbe(42, i, i >= 36 ? refinementFamily(results, 'Negation') : undefined, i >= 36 ? 'refine' : 'explore'); const a = mockAnswer(probe, 'baseline'), b = mockAnswer(probe, 'candidate'); results.push(compare(probe, { text: a, pass: grade(probe, a), latency: 0 }, { text: b, pass: grade(probe, b), latency: 0 })); }
-  return { id: 'sample-42', name: 'Atlas release comparison', createdAt: '2026-10-27T12:00:00.000Z', seed: 42, status: 'completed', models: defaultModels.map(({ key: _key, ...m }) => m) as Run['models'], results, requested: 48, version: '1.0', simulated: true };
+  return { id: 'sample-1.1-42', name: 'Atlas release comparison', createdAt: '2026-10-27T12:00:00.000Z', seed: 42, status: 'completed', models: defaultModels.map(({ key: _key, ...m }) => m) as Run['models'], results, requested: 48, version: '1.1', mode: 'discovery', simulated: true };
 }
