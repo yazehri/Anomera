@@ -4,7 +4,7 @@ export type Model = { name: string; kind: 'mock' | 'endpoint'; profile: 'baselin
 export type Probe = { id: string; family: Family; prompt: string; expected: string; level: number; phase: 'explore' | 'refine'; rule: 'number' | 'exact' | 'json'; tags: string[] };
 export type Answer = { text: string; pass: boolean; latency: number; error?: string };
 export type Result = { probe: Probe; a: Answer; b: Answer; distance: number; direction: 'regression' | 'improvement' | 'agreement' | 'shared failure' | 'error' };
-export type Run = { id: string; name: string; createdAt: string; seed: number; status: 'completed' | 'cancelled'; models: [Omit<Model, 'key'>, Omit<Model, 'key'>]; results: Result[]; requested: number; version: '1.0' | '1.1'; simulated: boolean; mode?: 'discovery' | 'validation' | 'replay'; suiteId?: string; suiteHash?: string; validationOf?: string; sourceRunId?: string };
+export type Run = { id: string; name: string; createdAt: string; seed: number; status: 'completed' | 'cancelled'; models: [Omit<Model, 'key'>, Omit<Model, 'key'>]; results: Result[]; requested: number; version: '1.0' | '1.1'; simulated: boolean; mode?: 'discovery' | 'validation' | 'replay'; suiteId?: string; suiteHash?: string; validationOf?: string; sourceRunId?: string; stopReason?: string };
 export const defaultModels: [Model, Model] = [
   { name: 'Atlas · baseline', kind: 'mock', profile: 'baseline', url: '', model: '', key: '' },
   { name: 'Atlas · candidate', kind: 'mock', profile: 'candidate', url: '', model: '', key: '' },
@@ -87,11 +87,15 @@ export async function callModel(model: Model, probe: Probe, signal: AbortSignal)
     if (model.kind === 'mock') { await new Promise<void>((resolve, reject) => { if (signal.aborted) return reject(new DOMException('Cancelled', 'AbortError')); const onAbort = () => { clearTimeout(timer); reject(new DOMException('Cancelled', 'AbortError')); }; const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, 35); signal.addEventListener('abort', onAbort, { once: true }); }); text = mockAnswer(probe, model.profile); }
     else {
       const response = await fetch(model.url, { method: 'POST', credentials: 'omit', redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]), headers: { 'Content-Type': 'application/json', ...(model.key ? { Authorization: `Bearer ${model.key}` } : {}) }, body: JSON.stringify({ model: model.model, messages: [{ role: 'user', content: probe.prompt }], temperature: 0, max_tokens: 256, stream: false }) });
-      if (!response.ok) throw new Error(`Endpoint returned HTTP ${response.status}. Check the model ID, key, and browser CORS permissions.`);
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => {});
+        const advice = response.status === 429 ? 'Rate limit reached. Wait before replaying these probes.' : response.status >= 500 ? 'Provider temporarily unavailable. Try replaying these probes later.' : response.status === 404 ? 'Model or endpoint not found. Check the model ID and URL.' : [401,403].includes(response.status) ? 'Access denied. Check the API key and model permissions.' : 'Check the model ID, key, and endpoint configuration.';
+        throw new Error(`Endpoint returned HTTP ${response.status}. ${advice}`);
+      }
       text = await readCompletion(response);
     }
     return { text, pass: grade(probe, text), latency: Math.round(performance.now() - start) };
-  } catch (error) { if (signal.aborted) throw error; return { text: '', pass: false, latency: Math.round(performance.now() - start), error: error instanceof Error ? error.message : 'Endpoint request failed.' }; }
+  } catch (error) { if (signal.aborted) throw error; return { text: '', pass: false, latency: Math.round(performance.now() - start), error: error instanceof Error && error.name === 'TimeoutError' ? 'Endpoint timed out after 20 seconds. Replay this probe later.' : error instanceof Error ? error.message : 'Endpoint request failed.' }; }
 }
 export function refinementFamily(results: Result[], fallback: Family): Family {
   const counts = families.map(f => ({ f, score: results.filter(r => r.probe.family === f && ['regression', 'improvement'].includes(r.direction)).length })); counts.sort((a, b) => b.score - a.score); return counts[0].score ? counts[0].f : fallback;
@@ -100,16 +104,21 @@ export async function evaluate(options: { models: [Model, Model]; seed: number; 
   const { models, seed, count, signal } = options; models.forEach(validateModel); if (!Number.isInteger(seed) || seed < 0 || seed > 2147483647) throw new Error('Use an integer seed between 0 and 2147483647.'); if ((options.mode === 'replay' || options.mode === 'validation') && !options.probes) throw new Error('This experiment requires a fixed probe set.'); if (!Number.isInteger(count) || count < (options.probes ? 1 : 8) || count > 80) throw new Error('Choose between 8 and 80 probes.');
   if (options.probes && options.probes.length !== count) throw new Error('Probe count does not match the frozen suite.');
   const seen = new Set<string>();
-  const results: Result[] = []; const exploration = Math.floor(count * .75); let cancelled = false;
+  const results: Result[] = []; const exploration = Math.floor(count * .75); let cancelled = false; let stopReason: string | undefined; const consecutive = [0,0];
   for (let i = 0; i < count; i++) {
     if (signal.aborted) { cancelled = true; break; }
     const refine = !options.probes && i >= exploration; const family = refine ? refinementFamily(results, families[i % 4]) : undefined;
     let probe = options.probes?.[i] ?? makeProbe(seed, i, family, refine ? 'refine' : 'explore');
     if (!options.probes) { let attempt = 0; while (seen.has(probe.prompt) && attempt < 200) { attempt++; probe = makeProbe(seed, i + attempt * count, family ?? families[i % 4], refine ? 'refine' : 'explore'); } if (seen.has(probe.prompt)) throw new Error('Unable to generate distinct probes. Try another seed.'); }
     seen.add(probe.prompt);
-    try { const [a, b] = await Promise.all(models.map(m => callModel(m, probe, signal))); results.push(compare(probe, a, b)); options.onProgress([...results], options.mode === 'replay' ? 'Replaying frozen probes' : options.mode === 'validation' ? 'Validating fresh prompts' : refine ? 'Refining divergent families' : 'Exploring prompt families'); } catch (e) { if (signal.aborted) { cancelled = true; break; } throw e; }
+    try { const [a, b] = await Promise.all(models.map(m => callModel(m, probe, signal))); results.push(compare(probe, a, b)); const answers=[a,b];
+      for(let side=0;side<2;side++) consecutive[side]=answers[side].error ? consecutive[side]+1 : 0;
+      const blocked=answers.findIndex(answer=>answer.error && /HTTP (401|403|404|429)\b/.test(answer.error));
+      const failing=blocked>=0 ? blocked : consecutive.findIndex(n=>n>=3);
+      if(failing>=0){cancelled=true;stopReason=`Stopped after ${models[failing].name} ${blocked>=0 ? 'returned a configuration or rate-limit error' : 'failed three consecutive requests'}. Completed probes were preserved. Check the connection before replaying errors.`;}
+      options.onProgress([...results], options.mode === 'replay' ? 'Replaying frozen probes' : options.mode === 'validation' ? 'Validating fresh prompts' : refine ? 'Refining divergent families' : 'Exploring prompt families'); if(stopReason) break; } catch (e) { if (signal.aborted) { cancelled = true; break; } throw e; }
   }
-  return { id: crypto.randomUUID(), name: options.name.trim() || 'Untitled evaluation', createdAt: new Date().toISOString(), seed, status: cancelled ? 'cancelled' : 'completed', models: models.map(({ key: _key, ...m }) => m) as Run['models'], results, requested: count, version: '1.1', mode: options.mode ?? 'discovery', suiteId: options.suiteId, suiteHash: options.suiteHash, validationOf: options.validationOf, sourceRunId: options.sourceRunId, simulated: models.some(m => m.kind === 'mock') };
+  return { id: crypto.randomUUID(), name: options.name.trim() || 'Untitled evaluation', createdAt: new Date().toISOString(), seed, status: cancelled ? 'cancelled' : 'completed', stopReason, models: models.map(({ key: _key, ...m }) => m) as Run['models'], results, requested: count, version: '1.1', mode: options.mode ?? 'discovery', suiteId: options.suiteId, suiteHash: options.suiteHash, validationOf: options.validationOf, sourceRunId: options.sourceRunId, simulated: models.some(m => m.kind === 'mock') };
 }
 export function summarize(results: Result[]) {
   const valid = results.filter(r => !r.a.error && !r.b.error); const regressions = valid.filter(r => r.direction === 'regression').length; const improvements = valid.filter(r => r.direction === 'improvement').length;

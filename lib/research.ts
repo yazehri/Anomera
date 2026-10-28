@@ -22,10 +22,10 @@ export async function hashProbes(probes: Probe[]): Promise<string> {
   const bytes = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(canonical)));
   return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-export async function createSuite(name: string, source: Run, selected: Result[]): Promise<Suite> {
+export async function createSuite(name: string, source: Run, selected: Result[], includeErrors = false): Promise<Suite> {
   if (!name.trim() || name.length > 120) throw new Error('Give the suite a name of 1–120 characters.');
   const unique = new Map<string, Probe>();
-  for (const r of selected) { if (r.a.error || r.b.error) continue; const p = parseProbe(r.probe); const key=canonicalPrompt(p.prompt); const prior=unique.get(key); if(prior && (prior.rule!==p.rule || prior.expected!==p.expected)) throw new Error('The same prompt has contradictory expected answers.'); if(!prior) unique.set(key,p); }
+  for (const r of selected) { if (!includeErrors && (r.a.error || r.b.error)) continue; const p = parseProbe(r.probe); const key=canonicalPrompt(p.prompt); const prior=unique.get(key); if(prior && (prior.rule!==p.rule || prior.expected!==p.expected)) throw new Error('The same prompt has contradictory expected answers.'); if(!prior) unique.set(key,p); }
   const probes = [...unique.values()];
   if (!probes.length || probes.length > MAX_PROBES) throw new Error('A regression suite needs 1–80 valid, distinct probes.');
   return {kind:'blindspot-regression-suite',version:1,id:crypto.randomUUID(),name:name.trim(),createdAt:new Date().toISOString(),sourceRunId:source.id,sourceEngine:source.version,simulatedSource:source.simulated,contentHash:await hashProbes(probes),probes};
