@@ -51,7 +51,7 @@ export function validationProbes(source: Run, seed: number, count: number): Prob
 }
 export function replayChanges(source: Run, replay: Run) {
   const original = new Map(source.results.map(r => [r.probe.prompt,r]));
-  let fixed=0, persistent=0, introduced=0, errored=0, matched=0;
-  for(const r of replay.results) {const previous=original.get(r.probe.prompt);if(!previous || previous.probe.rule!==r.probe.rule || previous.probe.expected!==r.probe.expected) continue; matched++; if(r.b.error || previous.b.error){errored++;continue;} if(!previous.b.pass && r.b.pass)fixed++;else if(!previous.b.pass && !r.b.pass)persistent++;else if(previous.b.pass && !r.b.pass)introduced++;}
-  return {matched,fixed,persistent,introduced,errored};
+  let fixed=0, persistent=0, introduced=0, errored=0, matched=0, recovered=0, currentErrors=0;
+  for(const r of replay.results) {const previous=original.get(r.probe.prompt);if(!previous || previous.probe.rule!==r.probe.rule || previous.probe.expected!==r.probe.expected) continue; matched++; if(r.b.error)currentErrors++; if(previous.b.error && !r.b.error)recovered++; if(r.b.error || previous.b.error){errored++;continue;} if(!previous.b.pass && r.b.pass)fixed++;else if(!previous.b.pass && !r.b.pass)persistent++;else if(previous.b.pass && !r.b.pass)introduced++;}
+  return {matched,fixed,persistent,introduced,errored,recovered,currentErrors};
 }
