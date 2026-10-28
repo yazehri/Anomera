@@ -177,3 +177,7 @@ See [free web-product smoke test](docs/BROWSER_SMOKE.md) for a small recorded Ge
 ### Recovering interrupted provider runs
 
 Runs stop on HTTP 401, 403, 404, or 429, or after three consecutive errors on either model. Completed evidence and the stop reason are saved. Select **Replay errors** to prepare an exact frozen set of the failed probes, review the configured models and request budget, then explicitly start a new run. Both model responses are requested again for each selected probe; the original run is preserved. Successful probes are excluded. No automatic retries are made.
+
+### Verified release scope
+
+The [verification record](docs/VERIFICATION.md) distinguishes observed behavior from remaining limits. Real-account email confirmation, sign-in persistence, private cloud run saves, and frozen suite saves/reloads have been exercised. A 16-probe Gemini API connection check returned six valid answers and ten service errors/timeouts; it is not a model-quality benchmark. The recovery release passes 26 automated tests. Evaluations still require the browser page to remain open.
