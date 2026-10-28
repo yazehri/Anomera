@@ -1,5 +1,13 @@
 # Changelog
 
+## Endpoint reliability — 28 October 2026
+
+- Read endpoint responses incrementally with a 1 MB byte limit and cancel oversized streams.
+- Reject oversized answers instead of silently truncating them before grading.
+- Record provider token-limit and content-filter outcomes as errors, excluded from behavioral findings.
+- Validate direct adapter calls and prevent requests after cancellation.
+- Add seven endpoint regression tests; all 23 tests and the production build pass.
+
 ## Apple-inspired refinement — 28 October 2026
 
 - Retain the charcoal theme and add Apple-style headline scale, centered overview composition, rounded cards, and blue primary controls.
