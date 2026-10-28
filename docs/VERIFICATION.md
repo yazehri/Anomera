@@ -53,4 +53,4 @@ Date: 27 October 2026
 - Provider recovery release: 26 automated tests pass; production build and strict TypeScript check pass.
 - Production recovery flow reopened the 16-probe Gemini run, selected its 10 error probes, and completed an exact mock replay with the same suite hash. No browser console errors were observed.
 - Independent benchmark verifier confirms all 20 seed pairs, 3,200 probes, and 6,400 mock calls; a corrupted grade fails verification.
-- Real Gemini replay under the recovery release remains pending a key being re-entered after page reload.
+- Real Gemini recovery replay completed: all 10 previously errored probes returned valid passing responses, with zero current provider errors. Export comparison verified exact probe order/content and sourceRunId; keys remain excluded. Saved the replay to private cloud storage.
