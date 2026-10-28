@@ -1,5 +1,14 @@
 # Changelog
 
+## Design refresh — 28 October 2026
+
+- Introduce an original dark workspace inspired by OpenAI’s restrained visual language.
+- Replace green-tinted surfaces and neon accents with charcoal, neutral controls, and meaningful outcome colors.
+- Simplify metrics, navigation, evidence panels, and dialog typography.
+- Remove external font requests and add a project-specific DESIGN.md.
+- Increase chart-point hit areas and retain reduced-motion behavior.
+- Verify a 16-prompt run, evidence inspection, and a mobile layout without horizontal overflow.
+
 ## 0.2.0 — 27 October 2026
 
 - Freeze discovered regressions or individual probes as immutable suites.
