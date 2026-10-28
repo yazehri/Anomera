@@ -1,5 +1,11 @@
 # Changelog
 
+## Apple-inspired refinement — 28 October 2026
+
+- Retain the charcoal theme and add Apple-style headline scale, centered overview composition, rounded cards, and blue primary controls.
+- Prioritize Apple’s native system font without bundling restricted SF Pro font files; other platforms use fallbacks.
+- Increase text sizes in evidence views, tables, and forms.
+
 ## Design refresh — 28 October 2026
 
 - Introduce an original dark workspace inspired by OpenAI’s restrained visual language.
