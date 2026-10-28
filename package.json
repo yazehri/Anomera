@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
-    "benchmark": "node --import tsx scripts/benchmark.ts"
+    "benchmark": "node --import tsx scripts/benchmark.ts",
+    "verify:benchmark": "node --import tsx scripts/verify-benchmark.ts"
   },
   "dependencies": {
     "next": "16.4.3",

@@ -165,3 +165,11 @@ MIT. See [LICENSE](LICENSE).
 Run `pnpm benchmark` to execute 20 seeds with 80 discovery probes and 80 fresh validation probes per seed. This uses only deterministic mock models and makes no provider requests. Reports are saved under `artifacts/benchmark-<timestamp>/`: `REPORT.md` contains the seed comparison, and `results.json` includes full prompts, responses, provenance, and family/complexity breakdowns. Generated artifacts are excluded from Git by default.
 
 Validation excludes the paired discovery run's prompts. Different seeds may overlap, so this report does not claim independent samples or statistical significance. It verifies the pipeline, not real-model quality.
+
+Verify an existing mock benchmark artifact against its recorded responses:
+
+```sh
+pnpm verify:benchmark artifacts/benchmark-<timestamp>/results.json
+```
+
+See [free web-product smoke test](docs/BROWSER_SMOKE.md) for a small recorded Gemini, Claude, and ChatGPT browser check and its limitations.
