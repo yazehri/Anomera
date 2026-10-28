@@ -43,4 +43,4 @@
 - Preserve engine 1.0 run history; new generated runs use engine 1.1.
 - Keep the existing visual design; the planned interface redesign is separate work.
 
-Mock findings remain simulated. Real provider calls and real-mailbox authentication testing remain pending credentials. A validation batch holds out task instances from the same grammars; it is not an independent benchmark or a significance test.
+Mock findings remain simulated. Gemini API connectivity and real-account cloud persistence were verified on 28 October; see VERIFICATION.md for observed errors and limits. A validation batch holds out task instances from the same grammars; it is not an independent benchmark or a significance test.

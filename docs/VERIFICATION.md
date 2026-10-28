@@ -27,10 +27,9 @@ Date: 27 October 2026
 - Suite RLS: an owner could insert, cross-owner insert was rejected, and the other user could see zero suites. The test transaction rolled back.
 - Security advisors: zero findings after the regression_suites table was added.
 
-## Not independently verified
+## Deployment and runtime limits
 
 - No paid real-model endpoint was invoked; mock findings are intentionally simulated.
-- Email confirmation and an authenticated cloud save were not exercised with a real mailbox. Database ownership isolation was tested directly.
 - GitHub automatic deployments require a GitHub login connection in Vercel. The first deployment used the connected Vercel source-file API.
 - Long-running evaluations still require an open browser page.
 
@@ -38,4 +37,20 @@ Date: 27 October 2026
 
 - Independent benchmark verifier regraded all 3,200 probes and checked 6,400 mock calls, summary consistency, completion, distinct prompts, and paired discovery/validation separation.
 - Free Gemini, Claude, and ChatGPT browser smoke tests completed; all three passed the clarified raw JSON task. See BROWSER_SMOKE.md for exact prompts and limitations.
-- Real provider API integration and real-mailbox cloud saves remain unverified.
+- Gemini API returned 6 valid answers (all passed) and 10 service errors/timeouts in a bounded 16-probe run. A mixed mock baseline means this is a connection test, not a model comparison.
+
+## Real-account cloud persistence — 28 October 2026
+
+- User completed mailbox confirmation and password sign-in through the app.
+- Saved the 10-probe mock recovery verification run through Save to cloud.
+- Created and saved Cloud verification · 3 mock regressions, hash 9dc6e5312833d447bc60a233da781f00f8e19392e7b6bd38abffbf4fa0ed3a8c.
+- Reloaded the page; signed-in state persisted. Load cloud runs returned one cloud record; opened it and inspected saved results.
+- Load cloud suites succeeded after reload; suite retained its three probes and integrity hash. A read-only database query independently confirmed the saved suite and matching hash.
+- No mailbox credentials or session tokens were captured in this verification record.
+
+## Release checks — 28 October 2026
+
+- Provider recovery release: 26 automated tests pass; production build and strict TypeScript check pass.
+- Production recovery flow reopened the 16-probe Gemini run, selected its 10 error probes, and completed an exact mock replay with the same suite hash. No browser console errors were observed.
+- Independent benchmark verifier confirms all 20 seed pairs, 3,200 probes, and 6,400 mock calls; a corrupted grade fails verification.
+- Real Gemini replay under the recovery release remains pending a key being re-entered after page reload.
