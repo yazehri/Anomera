@@ -1,5 +1,14 @@
 # Changelog
 
+## Provider recovery — 28 October 2026
+
+- Stop on HTTP 401/403/404/429, or three consecutive errors on either model; preserve completed probes and the stop reason.
+- Explain service unavailability, rate limits, access errors, model lookup failures, and timeouts separately.
+- Replay only error probes as an exact frozen set in a new run, with original results preserved. No automatic retries.
+- Preserve the selected probe budget when opening a new evaluation.
+- Add recovery tests covering stop behavior, counter reset, exact replay selection, and credential exclusion.
+
+
 ## Endpoint reliability — 28 October 2026
 
 - Read endpoint responses incrementally with a 1 MB byte limit and cancel oversized streams.
