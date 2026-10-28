@@ -43,15 +43,52 @@ export function validateModel(model: Model): void {
   if (!model.name.trim()) throw new Error('Give each model a name.');
   if (model.kind === 'endpoint') { let url: URL; try { url = new URL(model.url); } catch { throw new Error('Enter a valid endpoint URL.'); } if (url.protocol !== 'https:' || url.username || url.password || url.hash || url.search) throw new Error('Use an HTTPS completion endpoint without URL credentials, query parameters, or fragments.'); if (!model.model.trim()) throw new Error('Enter the model ID for your endpoint.'); }
 }
+const MAX_RESPONSE_BYTES = 1_000_000;
+// Read incrementally so an untrusted endpoint cannot force an unbounded buffer.
+async function readCompletion(response: Response): Promise<string> {
+  const length = response.headers.get('content-length');
+  if (length && Number(length) > MAX_RESPONSE_BYTES) {
+    await response.body?.cancel();
+    throw new Error('Endpoint response exceeded 1 MB.');
+  }
+  if (!response.body) throw new Error('Endpoint returned an empty response.');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let bytes = 0, raw = '';
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      bytes += chunk.value.byteLength;
+      if (bytes > MAX_RESPONSE_BYTES) throw new Error('Endpoint response exceeded 1 MB.');
+      raw += decoder.decode(chunk.value, { stream: true });
+    }
+    raw += decoder.decode();
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
+  } finally { reader.releaseLock(); }
+  let data;
+  try { data = JSON.parse(raw); } catch { throw new Error('Endpoint returned invalid JSON.'); }
+  const choice = data?.choices?.[0];
+  if (choice?.finish_reason === 'length') throw new Error('Model output reached its token limit. Increase the endpoint output allowance before interpreting this probe.');
+  if (choice?.finish_reason === 'content_filter') throw new Error('Provider filtered the model output.');
+  const content = choice?.message?.content;
+  if (typeof content !== 'string') throw new Error('Expected choices[0].message.content to contain text.');
+  if (content.length > 16000) throw new Error('Model output exceeded 16,000 characters. The answer was not graded.');
+  return content;
+}
 export async function callModel(model: Model, probe: Probe, signal: AbortSignal): Promise<Answer> {
+  validateModel(model);
   const start = performance.now();
   try {
+    signal.throwIfAborted();
     let text: string;
     if (model.kind === 'mock') { await new Promise<void>((resolve, reject) => { if (signal.aborted) return reject(new DOMException('Cancelled', 'AbortError')); const onAbort = () => { clearTimeout(timer); reject(new DOMException('Cancelled', 'AbortError')); }; const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, 35); signal.addEventListener('abort', onAbort, { once: true }); }); text = mockAnswer(probe, model.profile); }
     else {
       const response = await fetch(model.url, { method: 'POST', credentials: 'omit', redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]), headers: { 'Content-Type': 'application/json', ...(model.key ? { Authorization: `Bearer ${model.key}` } : {}) }, body: JSON.stringify({ model: model.model, messages: [{ role: 'user', content: probe.prompt }], temperature: 0, max_tokens: 256, stream: false }) });
       if (!response.ok) throw new Error(`Endpoint returned HTTP ${response.status}. Check the model ID, key, and browser CORS permissions.`);
-      const raw = await response.text(); if (raw.length > 1000000) throw new Error('Endpoint response exceeded 1 MB.'); const data = JSON.parse(raw); const content = data?.choices?.[0]?.message?.content; if (typeof content !== 'string') throw new Error('Expected choices[0].message.content to contain text.'); text = content.slice(0, 16000);
+      text = await readCompletion(response);
     }
     return { text, pass: grade(probe, text), latency: Math.round(performance.now() - start) };
   } catch (error) { if (signal.aborted) throw error; return { text: '', pass: false, latency: Math.round(performance.now() - start), error: error instanceof Error ? error.message : 'Endpoint request failed.' }; }
