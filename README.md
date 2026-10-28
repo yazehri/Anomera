@@ -4,6 +4,8 @@
 
 Blindspot generates reproducible evaluation prompts, compares two model responses against known answers, and follows behavioral differences into related tests. Every finding links to the prompt, expected answer, and paired outputs that support it.
 
+The dark workspace follows the project-specific [design guide](DESIGN.md): neutral charcoal surfaces, restrained motion, and evidence-first layouts.
+
 An exploratory evaluation platform built with **Next.js · TypeScript · Supabase · Vercel**.
 
 ## Try it
