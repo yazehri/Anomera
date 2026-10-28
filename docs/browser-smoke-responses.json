@@ -1,0 +1,29 @@
+{
+  "kind": "blindspot-browser-smoke",
+  "capturedAt": "2026-10-28T18:05:27.794Z",
+  "prompt": "Solve these 8 items. Return only a JSON object with keys \"1\" through \"8\", answers as strings. No tools. 1: (37+18)*7. 2: 999*999-998*1000. 3: Choose amber, blue, coral; neither amber nor coral. 4: Choose gold, teal, ivory; it is not true that the answer is not ivory. 5: Give JSON with exactly one numeric key total equal to 48+17; encode the JSON as the answer string. 6: Verified code BS-7319; archived BS-1900; unverified BS-9999. Return verified code. 7: All glips are zorks. No zorks are meps. Can a glip be a mep? yes/no. 8: Sort 12,-3,2,0,-11 ascending, comma-separated without spaces.",
+  "followupPrompt": "Return only a raw JSON object with exactly one key named \"total\". Its value must be the number obtained by adding 48 and 17. No Markdown, no prose, no other keys.",
+  "limitations": [
+    "One batched response and one follow-up per product, not repeated independent trials.",
+    "Follow-up used the existing conversation context.",
+    "Web product tests do not exercise Blindspot endpoint integration.",
+    "Original item 5 is ambiguous and must not support a model-quality ranking.",
+    "Exact Gemini and ChatGPT model IDs were not exposed.",
+    "Rendered text and accessible response headings used to avoid clipboard Markdown transformations."
+  ],
+  "claude": {
+    "mode": "Sonnet 5.5 Medium",
+    "response": "{\"1\":\"385\",\"2\":\"1\",\"3\":\"blue\",\"4\":\"ivory\",\"5\":\"{\\\"total\\\":65}\",\"6\":\"BS-7319\",\"7\":\"no\",\"8\":\"-11,-3,0,2,12\"}",
+    "followup": "{\"total\":65}"
+  },
+  "gemini": {
+    "mode": "Adaptive; exact model unconfirmed",
+    "response": "{\n\"1\": \"385\",\n\"2\": \"1\",\n\"3\": \"blue\",\n\"4\": \"ivory\",\n\"5\": \"{\"65\": 65}\",\n\"6\": \"BS-7319\",\n\"7\": \"no\",\n\"8\": \"-11,-3,0,2,12\"\n}",
+    "followup": "{\"total\": 65}"
+  },
+  "chatgpt": {
+    "mode": "Free default; exact model unconfirmed; Think off",
+    "response": "{\n\"1\": \"385\",\n\"2\": \"1\",\n\"3\": \"blue\",\n\"4\": \"ivory\",\n\"5\": \"{\\\"65\\\":65}\",\n\"6\": \"BS-7319\",\n\"7\": \"no\",\n\"8\": \"-11,-3,0,2,12\"\n}",
+    "followup": "{\"total\":65}"
+  }
+}

@@ -33,3 +33,9 @@ Date: 27 October 2026
 - Email confirmation and an authenticated cloud save were not exercised with a real mailbox. Database ownership isolation was tested directly.
 - GitHub automatic deployments require a GitHub login connection in Vercel. The first deployment used the connected Vercel source-file API.
 - Long-running evaluations still require an open browser page.
+
+## 28 October follow-up
+
+- Independent benchmark verifier regraded all 3,200 probes and checked 6,400 mock calls, summary consistency, completion, distinct prompts, and paired discovery/validation separation.
+- Free Gemini, Claude, and ChatGPT browser smoke tests completed; all three passed the clarified raw JSON task. See BROWSER_SMOKE.md for exact prompts and limitations.
+- Real provider API integration and real-mailbox cloud saves remain unverified.
