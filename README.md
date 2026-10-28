@@ -173,3 +173,7 @@ pnpm verify:benchmark artifacts/benchmark-<timestamp>/results.json
 ```
 
 See [free web-product smoke test](docs/BROWSER_SMOKE.md) for a small recorded Gemini, Claude, and ChatGPT browser check and its limitations.
+
+### Recovering interrupted provider runs
+
+Runs stop on HTTP 401, 403, 404, or 429, or after three consecutive errors on either model. Completed evidence and the stop reason are saved. Select **Replay errors** to prepare an exact frozen set of the failed probes, review the configured models and request budget, then explicitly start a new run. Both model responses are requested again for each selected probe; the original run is preserved. Successful probes are excluded. No automatic retries are made.
