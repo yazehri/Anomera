@@ -4,7 +4,7 @@
 
 Blindspot generates reproducible evaluation prompts, compares two model responses against known answers, and follows behavioral differences into related tests. Every finding links to the prompt, expected answer, and paired outputs that support it.
 
-The dark workspace follows the project-specific [design guide](DESIGN.md): neutral charcoal surfaces, restrained motion, and evidence-first layouts.
+The dark workspace follows the project-specific [design guide](DESIGN.md): Factory-inspired warm-black surfaces, self-hosted Geist typography, consistent rounded controls, restrained motion, and evidence-first layouts.
 
 An exploratory evaluation platform built with **Next.js · TypeScript · Supabase · Vercel**.
 
@@ -181,3 +181,8 @@ Runs stop on HTTP 401, 403, 404, or 429, or after three consecutive errors on ei
 ### Verified release scope
 
 The [verification record](docs/VERIFICATION.md) distinguishes observed behavior from remaining limits. Real-account email confirmation, sign-in persistence, private cloud run saves, and frozen suite saves/reloads have been exercised. A 16-probe Gemini API connection check returned six valid answers and ten service errors/timeouts; it is not a model-quality benchmark. The recovery release passes 26 automated tests. Evaluations still require the browser page to remain open.
+
+
+### Analytics and English reports
+
+The overview includes paired pass-rate charts, complete outcome counts and a task-by-complexity table. Click a task, outcome or complexity cell to inspect its exact probes. Use **Summary & fixes** to choose the baseline or candidate, read a plain-English report, inspect supporting failures and export Markdown. Recommendations are deterministic guidance keyed to observed failed task families, not an LLM diagnosis or a promise that a fix will work. Response errors are excluded, mock results are identified, and adaptive/replay sampling limitations accompany every report. No additional provider requests are made. The release passes 31 automated tests, including report error exclusion, evidence provenance, all-pass and partial-run handling.
