@@ -44,3 +44,11 @@
 - Keep the existing visual design; the planned interface redesign is separate work.
 
 Mock findings remain simulated. Gemini API connectivity and real-account cloud persistence were verified on 28 October; see VERIFICATION.md for observed errors and limits. A validation batch holds out task instances from the same grammars; it is not an independent benchmark or a significance test.
+
+## 2026-10-30 — workspace and analytics
+
+- Factory-inspired top navigation, self-hosted Geist fonts and a light evaluation dispatch.
+- Consistent rounded forms, sign-in controls and reduced-motion-aware transitions.
+- Model-specific English reports with evidence links, mitigation hypotheses, verification steps and Markdown export.
+- Outcome breakdown, task/complexity coverage and direct drill-down into filtered probes.
+- 31 passing automated tests, production build and browser verification of report export, model switching and complexity filtering.

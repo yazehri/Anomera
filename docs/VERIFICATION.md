@@ -54,3 +54,7 @@ Date: 27 October 2026
 - Production recovery flow reopened the 16-probe Gemini run, selected its 10 error probes, and completed an exact mock replay with the same suite hash. No browser console errors were observed.
 - Independent benchmark verifier confirms all 20 seed pairs, 3,200 probes, and 6,400 mock calls; a corrupted grade fails verification.
 - Real Gemini recovery replay completed: all 10 previously errored probes returned valid passing responses, with zero current provider errors. Export comparison verified exact probe order/content and sourceRunId; keys remain excluded. Saved the replay to private cloud storage.
+
+## 2026-10-30 interface and report verification
+
+Production build and TypeScript passed; 31 automated tests passed. Report tests cover per-model counts and evidence, error-only/empty runs, passing samples, partial runs, replay/validation limitations and shared failures. Browser verification completed a fresh 16-probe mock run, switched baseline/candidate reports, exported a Markdown report, and drilled a Negation level-2 cell into exactly one matching probe. Evaluation and sign-in controls use consistent corner tokens. These checks do not replace broader accessibility or user research.
