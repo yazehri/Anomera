@@ -31,7 +31,7 @@ export async function createSuite(name: string, source: Run, selected: Result[],
   return {kind:'blindspot-regression-suite',version:1,id:crypto.randomUUID(),name:name.trim(),createdAt:new Date().toISOString(),sourceRunId:source.id,sourceEngine:source.version,simulatedSource:source.simulated,contentHash:await hashProbes(probes),probes};
 }
 export async function parseSuite(value: unknown): Promise<Suite> {
-  if(!object(value) || value.kind!=='blindspot-regression-suite' || value.version!==1 || !text(value.id,160) || !text(value.name,120) || !text(value.createdAt,100) || !Number.isFinite(Date.parse(value.createdAt)) || !text(value.sourceRunId,160) || !['1.0','1.1'].includes(String(value.sourceEngine)) || typeof value.simulatedSource!=='boolean' || !Array.isArray(value.probes) || !value.probes.length || value.probes.length>MAX_PROBES || !text(value.contentHash,64)) throw new Error('This is not a valid Blindspot regression suite.');
+  if(!object(value) || value.kind!=='blindspot-regression-suite' || value.version!==1 || !text(value.id,160) || !text(value.name,120) || !text(value.createdAt,100) || !Number.isFinite(Date.parse(value.createdAt)) || !text(value.sourceRunId,160) || !['1.0','1.1'].includes(String(value.sourceEngine)) || typeof value.simulatedSource!=='boolean' || !Array.isArray(value.probes) || !value.probes.length || value.probes.length>MAX_PROBES || !text(value.contentHash,64)) throw new Error('This is not a valid Anomera regression suite.');
   const probes=value.probes.map(parseProbe);
   if(new Set(probes.map(p=>canonicalPrompt(p.prompt))).size!==probes.length || new Set(probes.map(p=>p.id)).size!==probes.length) throw new Error('A frozen suite cannot contain duplicate prompts or probe IDs.');
   const contentHash=await hashProbes(probes);
@@ -54,4 +54,16 @@ export function replayChanges(source: Run, replay: Run) {
   let fixed=0, persistent=0, introduced=0, errored=0, matched=0, recovered=0, currentErrors=0;
   for(const r of replay.results) {const previous=original.get(r.probe.prompt);if(!previous || previous.probe.rule!==r.probe.rule || previous.probe.expected!==r.probe.expected) continue; matched++; if(r.b.error)currentErrors++; if(previous.b.error && !r.b.error)recovered++; if(r.b.error || previous.b.error){errored++;continue;} if(!previous.b.pass && r.b.pass)fixed++;else if(!previous.b.pass && !r.b.pass)persistent++;else if(previous.b.pass && !r.b.pass)introduced++;}
   return {matched,fixed,persistent,introduced,errored,recovered,currentErrors};
+}
+
+/** Author checks within the supported task families without fabricating source results. */
+export async function authorSuite(name: string, cases: unknown): Promise<Suite> {
+  if (!name.trim() || name.length > 120) throw new Error('Give the suite a name of 1–120 characters.');
+  if (!Array.isArray(cases) || cases.length < 1 || cases.length > MAX_PROBES) throw new Error('Provide 1–80 test cases.');
+  const probes = cases.map((value, index) => {
+    if (!object(value)) throw new Error(`Case ${index+1} must be an object.`);
+    return parseProbe({...value,id:`custom-${index}-${crypto.randomUUID()}`,phase:'explore',tags:['developer-authored'],level:value.level ?? 1});
+  });
+  if (new Set(probes.map(p=>canonicalPrompt(p.prompt))).size !== probes.length) throw new Error('Remove duplicate prompts.');
+  return {kind:'blindspot-regression-suite',version:1,id:crypto.randomUUID(),name:name.trim(),createdAt:new Date().toISOString(),sourceRunId:'developer-authored',sourceEngine:'1.1',simulatedSource:false,contentHash:await hashProbes(probes),probes};
 }
