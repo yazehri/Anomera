@@ -1,4 +1,4 @@
-# Blindspot — Factory-inspired interface
+# Anomera — Factory-inspired interface
 
 This replaces the previous sidebar dashboard and Osmo/red direction. The user supplied factory-design-md.md as the new visual reference.
 

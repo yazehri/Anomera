@@ -1,8 +1,8 @@
-# Blindspot
+# Anomera
 
 **AI behavioral diffs. Find the edge of model reliability.**
 
-Blindspot generates reproducible evaluation prompts, compares two model responses against known answers, and follows behavioral differences into related tests. Every finding links to the prompt, expected answer, and paired outputs that support it.
+Anomera generates reproducible evaluation prompts, compares two model responses against known answers, and follows behavioral differences into related tests. Every finding links to the prompt, expected answer, and paired outputs that support it.
 
 The dark workspace follows the project-specific [design guide](DESIGN.md): Factory-inspired warm-black surfaces, self-hosted Geist typography, consistent rounded controls, restrained motion, and evidence-first layouts.
 
@@ -61,7 +61,7 @@ The test suite covers 8,000 generated oracle cases, strict grading failures, sim
 ## Connect Supabase
 
 1. Create a Supabase project.
-2. Run `supabase/schema.sql` in the SQL editor of a **new** project. It creates `evaluation_runs`, `regression_suites`, owner indexes, grants, and row-level security policies. Existing v0.1 instances apply only `supabase/add_regression_suites.sql`. For the original Blindspot instance, this schema has already been applied through the connected Supabase plugin.
+2. Run `supabase/schema.sql` in the SQL editor of a **new** project. It creates `evaluation_runs`, `regression_suites`, owner indexes, grants, and row-level security policies. Existing v0.1 instances apply only `supabase/add_regression_suites.sql`. For the original Anomera instance, this schema has already been applied through the connected Supabase plugin.
 3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`. Use the public publishable key, never a service-role key.
 4. Enable email/password auth (enabled by default). Set the Auth Site URL to your deployment URL so account confirmation emails return to your app. With email confirmation enabled, users confirm the email and then sign in with their password.
 5. Create an account from the guest profile button. Run an evaluation, then choose **Save to cloud**. Cloud saves are explicit; guest runs stay on the current device.
@@ -150,7 +150,7 @@ Dashboard (React / Next.js App Router)
 
 Import this repository, choose Next.js, and add the two public Supabase variables from `.env.example`. Vercel runs `pnpm build`. For automatic deployment on commits, connect your GitHub login in Vercel and link this repository. A source-file deployment also works without a Git login connection.
 
-The public product name is **Blindspot**. Lowercase package identifiers and hosting slugs follow their platforms’ naming conventions.
+The public product name is **Anomera**. Lowercase package identifiers and hosting slugs follow their platforms’ naming conventions.
 
 ## Responsible reporting
 
