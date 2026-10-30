@@ -9,7 +9,7 @@ export function EvaluationReport({run, inspect}: {run: Run; inspect: (result: Re
   const report = buildReport(run, side);
   function download() {
     const url = URL.createObjectURL(new Blob([reportMarkdown(run,side)],{type:'text/markdown;charset=utf-8'}));
-    const link = document.createElement('a'); link.href=url; link.download=`Blindspot-report-${run.id.slice(0,8)}-${side}.md`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const link = document.createElement('a'); link.href=url; link.download=`Anomera-report-${run.id.slice(0,8)}-${side}.md`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   return <section className="evaluation-report" aria-label="Evaluation report">
     <div className="report-toolbar"><div className="segmented" aria-label="Report model">{(['a','b'] as const).map((s,i)=><button key={s} aria-pressed={side===s} onClick={()=>setSide(s)}>{i===0?'Baseline':'Candidate'}<span>{run.models[i].name}</span></button>)}</div><button className="secondary" onClick={download}><Download size={15}/>Export report</button></div>
